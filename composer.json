@@ -1,0 +1,33 @@
+{
+    "name": "globalis-ms/multisite-clone-duplicator",
+    "description": "Clones an existing site into a new one in a multisite installation: copies all the posts, settings and files",
+    "type": "wordpress-plugin",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Julien OGER",
+            "email": "julien.oger@example.com"
+        },
+        {
+            "name": "Pierre DARGHAM",
+            "email": "pierre.dargham@example.com"
+        },
+        {
+            "name": "David DAUGREILH",
+            "email": "david.daugreilh@example.com"
+        },
+        {
+            "name": "GLOBALIS media systems",
+            "email": "info@globalis-ms.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "composer/installers": "~1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "MUCD\\": "src/"
+        }
+    }
+}
