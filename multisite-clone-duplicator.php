@@ -14,65 +14,69 @@
  */
 
 // Block direct requests
-if ( !defined('ABSPATH') )
-    die('-1');
+if ( ! defined( 'ABSPATH' ) ) {
+	die( '-1' );
+}
 
-if( !class_exists( 'MUCD' ) ) {
+if ( ! class_exists( 'MUCD' ) ) {
 
-    // Load configuration
-    require_once realpath( dirname( __FILE__ ) ) . '/include/config.php';
+	// Load configuration
+	require_once realpath( dirname( __FILE__ ) ) . '/include/config.php';
 
-    // Plugin options
-    require_once MUCD_COMPLETE_PATH . '/include/option.php';
+	// Plugin options
+	require_once MUCD_COMPLETE_PATH . '/include/option.php';
 
-    // Load textdomain
-	add_action( 'init', function() {
-		load_plugin_textdomain( MUCD_DOMAIN, NULL, MUCD_PATH . '/language/' );
-	});
+	// Load textdomain
+	add_action(
+		'init',
+		function() {
+			load_plugin_textdomain( MUCD_DOMAIN, null, MUCD_PATH . '/language/' );
+		}
+	);
 
-    // Load language
-    require_once MUCD_COMPLETE_PATH . '/include/lang.php';
+	// Load language
+	require_once MUCD_COMPLETE_PATH . '/include/lang.php';
 
-    // Load Functions
-    require_once MUCD_COMPLETE_PATH . '/lib/functions.php';
+	// Load Functions
+	require_once MUCD_COMPLETE_PATH . '/lib/functions.php';
 
-    if( is_admin() ) {
-        require_once MUCD_COMPLETE_PATH . '/include/admin.php';
-        MUCD_Admin::hooks();
-    }
+	if ( is_admin() ) {
+		require_once MUCD_COMPLETE_PATH . '/include/admin.php';
+		MUCD_Admin::hooks();
+	}
 
-    if ( defined('WP_CLI') && WP_CLI ) {
-        require_once MUCD_COMPLETE_PATH . '/lib/duplicate.php';
-        MUCD_Functions::set_locale_to_en_US();
-        require_once MUCD_COMPLETE_PATH . '/wp-cli/wp-cli-site-duplicate-subcommand.php';
-    }
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		require_once MUCD_COMPLETE_PATH . '/lib/duplicate.php';
+		MUCD_Functions::set_locale_to_en_US();
+		require_once MUCD_COMPLETE_PATH . '/wp-cli/wp-cli-site-duplicate-subcommand.php';
+	}
 
-    /**
-     * Main class of the plugin
-     */
-    class MUCD {
+	/**
+	 * Main class of the plugin
+	 */
+	class MUCD {
 
-        /**
-        * Plugin's version number
-        */
-        const VERSION = '1.5.3';
+		/**
+		* Plugin's version number
+		*/
+		const VERSION = '1.5.3';
 
-        /**
-         * Register hooks used by the plugin
-         */
-        public static function hooks() {
-            register_activation_hook( __FILE__, array( __CLASS__, 'activate' ) );
-            add_action( 'admin_init', array( 'MUCD_Functions', 'check_if_multisite' ) );
-        }
+		/**
+		 * Register hooks used by the plugin
+		 */
+		public static function hooks() {
+			register_activation_hook( __FILE__, array( __CLASS__, 'activate' ) );
+			add_action( 'admin_init', array( 'MUCD_Functions', 'check_if_multisite' ) );
+		}
 
-        /**
-         * What to do on plugin activation
-         */
-        public static function activate() {
-            MUCD_Option::init_options();
-        }
+		/**
+		 * What to do on plugin activation
+		 */
+		public static function activate() {
+			MUCD_Option::init_options();
+		}
 
-    }
+	}
 
-    MUCD::hooks();
+	MUCD::hooks();
 }

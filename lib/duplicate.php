@@ -93,7 +93,7 @@ if( !class_exists( 'MUCD_Duplicate' ) ) {
             }
 
             update_blog_option( $to_site_id, 'mucd_duplicable', "no");
-          
+
             $form_message['msg'] = MUCD_NETWORK_PAGE_DUPLICATE_NOTICE_CREATED;
             $form_message['site_id'] = $to_site_id;
 
@@ -154,12 +154,12 @@ if( !class_exists( 'MUCD_Duplicate' ) ) {
             }
 
             // Source Site information
-            $from_site_prefix = $wpdb->get_blog_prefix( $from_site_id );                    // prefix 
+            $from_site_prefix = $wpdb->get_blog_prefix( $from_site_id );                    // prefix
             $from_site_prefix_length = strlen($from_site_prefix);                           // prefix length
 
             // Destination Site information
             $to_site_prefix = $wpdb->get_blog_prefix( $to_site_id );                        // prefix
-            $to_site_prefix_length = strlen($to_site_prefix);  
+            $to_site_prefix_length = strlen($to_site_prefix);
 
             $users = get_users('blog_id='.$from_site_id);
 
@@ -208,11 +208,11 @@ if( !class_exists( 'MUCD_Duplicate' ) ) {
                         $data['log-path'] = $data['log-path'] . '/';
                     }
                     MUCD_Duplicate::$log = new MUCD_Log(true, $data['log-path'], $log_name);
-                }           
+                }
              }
             else {
                  MUCD_Duplicate::$log = new MUCD_Log(false);
-            }        
+            }
         }
 
         /**

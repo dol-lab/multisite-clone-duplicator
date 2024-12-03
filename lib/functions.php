@@ -17,7 +17,7 @@ if( !class_exists( 'MUCD_Functions' ) ) {
     	                $bool = preg_match('/^[^*?"<>|:]*$/',$tmp);
     	                return ($bool == 1); // so that it will return only true and false
     	            }
-    	            return false;    
+    	            return false;
     	}
 
         /**
@@ -51,14 +51,14 @@ if( !class_exists( 'MUCD_Functions' ) ) {
             switch_to_blog($blog_id);
             $wp_upload_info = wp_upload_dir();
             $dir = str_replace(' ', "\\ ", trailingslashit($wp_upload_info['basedir']));
-            restore_current_blog();   
+            restore_current_blog();
 
             wpmu_delete_blog($blog_id, true);
 
             // wpmu_delete_blog leaves an empty site upload directory, that we want to remove :
             MUCD_Files::rrmdir($dir);
         }
-        
+
         /**
          * Check if site is duplicable
          * @since 0.2.0
