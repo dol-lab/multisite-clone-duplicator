@@ -26,7 +26,9 @@ if( !class_exists( 'MUCD' ) ) {
     require_once MUCD_COMPLETE_PATH . '/include/option.php';
 
     // Load textdomain
-    load_plugin_textdomain( MUCD_DOMAIN, NULL, MUCD_PATH . '/language/' );
+	add_action( 'init', function() {
+		load_plugin_textdomain( MUCD_DOMAIN, NULL, MUCD_PATH . '/language/' );
+	});
 
     // Load language
     require_once MUCD_COMPLETE_PATH . '/include/lang.php';
@@ -43,7 +45,7 @@ if( !class_exists( 'MUCD' ) ) {
         require_once MUCD_COMPLETE_PATH . '/lib/duplicate.php';
         MUCD_Functions::set_locale_to_en_US();
         require_once MUCD_COMPLETE_PATH . '/wp-cli/wp-cli-site-duplicate-subcommand.php';
-    }    
+    }
 
     /**
      * Main class of the plugin
@@ -54,7 +56,7 @@ if( !class_exists( 'MUCD' ) ) {
         * Plugin's version number
         */
         const VERSION = '1.5.3';
-        
+
         /**
          * Register hooks used by the plugin
          */
