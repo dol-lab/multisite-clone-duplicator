@@ -13,27 +13,31 @@
 			<?php
 			// Networks with too many sites to list individually here would turn this into thousands of
 			// checkboxes plus a get_blog_option() call per site on every load of this settings page.
-			// get_blog_count() is a cheap, cached lookup, so we can bail out before that without
-			// querying the (possibly truncated, see MUCD_MAX_NUMBER_OF_SITE) full site list.
+			// get_blog_count() is a cheap, cached lookup, so we can decide before querying the
+			// (possibly truncated, see MUCD_MAX_NUMBER_OF_SITE) full site list whether to cap it.
 			$mucd_site_list_limit = (int) apply_filters( 'mucd_site_list_limit', 200 );
 			$mucd_site_count      = (int) get_blog_count();
+
 			if ( $mucd_site_count > $mucd_site_list_limit ) {
+				$mucd_site_list_preview = (int) apply_filters( 'mucd_site_list_preview', 100 );
 				echo '<p>' . esc_html(
 					sprintf(
-						/* translators: 1: number of sites on the network, 2: the duplicable sites limit */
-						__( 'This network has %1$d sites, too many to list individually here (limit: %2$d). Use the "mucd_duplicable" blog option, or the mucd_override_site_select / mucd_get_site_list_args filters, to manage duplicable sites for large networks.', 'multisite-clone-duplicator' ),
+						/* translators: 1: number of sites on the network, 2: number of sites listed below */
+						__( 'This network has %1$d sites; only the first %2$d are listed below. Use the "mucd_duplicable" blog option, or the mucd_override_site_select / mucd_get_site_list_args filters, to manage duplicable sites for large networks.', 'multisite-clone-duplicator' ),
 						$mucd_site_count,
-						$mucd_site_list_limit
+						$mucd_site_list_preview
 					)
 				) . '</p>';
+				$network_blogs = MUCD_Functions::get_sites( array( 'number' => $mucd_site_list_preview ) );
 			} else {
 				$network_blogs = MUCD_Functions::get_sites();
-				echo '<div class="multiselect" id="site-select-box">';
-				foreach ( $network_blogs as $blog ) {
-					echo '    <label><input ' . checked( get_blog_option( $blog['blog_id'], 'mucd_duplicable', 'no' ), 'yes', false ) . ' class="duplicables-list" type="checkbox" name="duplicables-list[]" value="' . esc_attr( $blog['blog_id'] ) . '" />' . esc_html( substr( $blog['domain'] . $blog['path'], 0, -1 ) ) . '</label>';
-				}
-				echo '</div>';
 			}
+
+			echo '<div class="multiselect" id="site-select-box">';
+			foreach ( $network_blogs as $blog ) {
+				echo '    <label><input ' . checked( get_blog_option( $blog['blog_id'], 'mucd_duplicable', 'no' ), 'yes', false ) . ' class="duplicables-list" type="checkbox" name="duplicables-list[]" value="' . esc_attr( $blog['blog_id'] ) . '" />' . esc_html( substr( $blog['domain'] . $blog['path'], 0, -1 ) ) . '</label>';
+			}
+			echo '</div>';
 			?>
 		</td>
 	</tr>
