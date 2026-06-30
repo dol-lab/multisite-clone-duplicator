@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 if ( ! class_exists( 'MUCD' ) ) {
 
 	// Load configuration
-	require_once realpath( dirname( __FILE__ ) ) . '/include/config.php';
+	require_once realpath( __DIR__ ) . '/include/config.php';
 
 	// Plugin options
 	require_once MUCD_COMPLETE_PATH . '/include/option.php';
@@ -29,8 +29,8 @@ if ( ! class_exists( 'MUCD' ) ) {
 	// Load textdomain
 	add_action(
 		'init',
-		function() {
-			load_plugin_textdomain( MUCD_DOMAIN, null, MUCD_PATH . '/language/' );
+		function () {
+			load_plugin_textdomain( MUCD_DOMAIN, false, MUCD_PATH . '/language/' );
 		}
 	);
 
@@ -75,7 +75,6 @@ if ( ! class_exists( 'MUCD' ) ) {
 		public static function activate() {
 			MUCD_Option::init_options();
 		}
-
 	}
 
 	MUCD::hooks();

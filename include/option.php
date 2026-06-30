@@ -4,6 +4,9 @@
  */
 if ( ! class_exists( 'MUCD_Option' ) ) {
 
+	/**
+	 * Plugin option management.
+	 */
 	class MUCD_Option {
 
 		/**
@@ -45,7 +48,7 @@ if ( ! class_exists( 'MUCD_Option' ) ) {
 		public static function set_duplicable_option( $blogs ) {
 			$network_blogs = MUCD_Functions::get_sites();
 			foreach ( $network_blogs as $blog ) {
-				if ( in_array( $blog['blog_id'], $blogs ) ) {
+				if ( in_array( (int) $blog['blog_id'], $blogs, true ) ) {
 					update_blog_option( $blog['blog_id'], 'mucd_duplicable', 'yes' );
 				} else {
 					update_blog_option( $blog['blog_id'], 'mucd_duplicable', 'no' );
@@ -193,6 +196,5 @@ if ( ! class_exists( 'MUCD_Option' ) ) {
 		public static function get_primary_tables_to_copy() {
 			return apply_filters( 'mucd_default_primary_tables_to_copy', self::get_default_primary_tables_to_copy() );
 		}
-
 	}
 }

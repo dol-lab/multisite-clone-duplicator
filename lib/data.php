@@ -2,8 +2,16 @@
 
 if ( ! class_exists( 'MUCD_Data' ) ) {
 
+	/**
+	 * Database-level copy and search/replace logic used when duplicating a site.
+	 */
 	class MUCD_Data {
 
+		/**
+		 * Blog ID of the site currently being created, used to roll it back on SQL error.
+		 *
+		 * @var int
+		 */
 		private static $to_site_id;
 
 		/**
@@ -53,13 +61,17 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 			$schema = DB_NAME;
 
 			// Get sources Tables
-			if ( $from_site_id == MUCD_PRIMARY_SITE_ID ) {
+			if ( (int) MUCD_PRIMARY_SITE_ID === (int) $from_site_id ) {
 				$from_site_table = self::get_primary_tables( $from_site_prefix );
 			} else {
-				$sql_query       = $wpdb->prepare( 'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = \'%s\' AND TABLE_NAME LIKE \'%s\'', $schema, $from_site_prefix_like . '%' );
+				$sql_query       = $wpdb->prepare( 'SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME LIKE %s', $schema, $from_site_prefix_like . '%' );
 				$from_site_table = self::do_sql_query( $sql_query, 'col' );
 			}
 
+			// $table_name/$table are blog-prefixed table names taken from INFORMATION_SCHEMA or the
+			// hardcoded default table list, never user input; identifiers can't be passed as prepare()
+			// placeholders, so they are backtick-quoted instead.
+			// phpcs:disable WordPress.DB.PreparedSQL.NotPrepared
 			foreach ( $from_site_table as $table ) {
 
 				$table_name = $to_site_prefix . substr( $table, $from_site_prefix_length );
@@ -74,6 +86,7 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 				self::do_sql_query( 'INSERT `' . $table_name . '` SELECT * FROM `' . $schema . '`.`' . $table . '`' );
 
 			}
+			// phpcs:enable WordPress.DB.PreparedSQL.NotPrepared
 
 			// apply key options from new blog.
 			self::db_restore_data( $to_site_id, $saved_options );
@@ -105,8 +118,9 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 		 * Updated tables from a site to another
 		 *
 		 * @since 0.2.0
-		 * @param  int $from_site_id duplicated site id
-		 * @param  int $to_site_id   new site id
+		 * @param  int   $from_site_id  duplicated site id
+		 * @param  int   $to_site_id    new site id
+		 * @param  array $saved_options options to preserve on the new blog
 		 */
 		public static function db_update_data( $from_site_id, $to_site_id, $saved_options ) {
 			global $wpdb;
@@ -131,7 +145,7 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 			// Bugfix : escape '_' , '%' and '/' character for mysql 'like' queries
 			$to_blog_prefix_like = $wpdb->esc_like( $to_blog_prefix );
 
-			$results = self::do_sql_query( 'SHOW TABLES LIKE \'' . $to_blog_prefix_like . '%\'', 'col', false );
+			$results = self::do_sql_query( $wpdb->prepare( 'SHOW TABLES LIKE %s', $to_blog_prefix_like . '%' ), 'col', false );
 
 			foreach ( $results as $k => $v ) {
 				$tables[ str_replace( $to_blog_prefix, '', $v ) ] = array();
@@ -179,8 +193,8 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 		 * Restore options that should be preserved in the new blog
 		 *
 		 * @since 0.2.0
-		 * @param  int $from_site_id duplicated site id
-		 * @param  int $to_site_id   new site id
+		 * @param  int   $to_site_id    new site id
+		 * @param  array $saved_options options to restore on the new blog
 		 */
 		public static function db_restore_data( $to_site_id, $saved_options ) {
 
@@ -212,27 +226,30 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 					$from_string_like = $wpdb->esc_like( $from_string );
 
 					// fix non datetime comparison error
-					$sql_query = $wpdb->prepare( "SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = '$table' AND COLUMN_NAME = '$field'" );
+					$sql_query = $wpdb->prepare( 'SELECT DATA_TYPE FROM INFORMATION_SCHEMA.COLUMNS WHERE table_name = %s AND COLUMN_NAME = %s', $table, $field );
 					$data_type = self::do_sql_query( $sql_query, 'results', false );
 					if ( is_array( $data_type ) ) {
 						$data_type = $data_type[0]['DATA_TYPE'];
 					}
-					if ( ! in_array( $data_type, array( 'datetime' ) ) ) {
-						$sql_query = $wpdb->prepare( 'SELECT `' . $field . '` FROM `' . $table . '` WHERE `' . $field . '` LIKE "%s" ', '%' . $from_string_like . '%' );
+
+					if ( ! in_array( $data_type, array( 'datetime' ), true ) ) {
+						// $table/$field are column/table identifiers taken from the schema introspection
+						// above (or the hardcoded field list), never user input; identifiers can't be
+						// passed as prepare() placeholders, so they are backtick-quoted instead.
+						// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+						$sql_query = $wpdb->prepare( 'SELECT `' . $field . '` FROM `' . $table . '` WHERE `' . $field . '` LIKE %s ', '%' . $from_string_like . '%' );
 						$results   = self::do_sql_query( $sql_query, 'results', false );
-					}
 
-					$sql_query = $wpdb->prepare( 'SELECT `' . $field . '` FROM `' . $table . '` WHERE `' . $field . '` LIKE "%s" ', '%' . $from_string_like . '%' );
-					$results   = self::do_sql_query( $sql_query, 'results', false );
+						if ( $results ) {
+							$update = 'UPDATE `' . $table . '` SET `' . $field . '` = %s WHERE `' . $field . '` = %s';
 
-					if ( $results ) {
-						$update = 'UPDATE `' . $table . '` SET `' . $field . '` = "%s" WHERE `' . $field . '` = "%s"';
-
-						foreach ( $results as $result => $row ) {
-							$old_value = $row[ $field ];
-							$new_value = self::try_replace( $row, $field, $from_string, $to_string );
-							$sql_query = $wpdb->prepare( $update, $new_value, $old_value );
-							$results   = self::do_sql_query( $sql_query );
+							foreach ( $results as $row ) {
+								$old_value = $row[ $field ];
+								$new_value = self::try_replace( $row, $field, $from_string, $to_string );
+								// phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $update built above from schema identifiers only.
+								$sql_query = $wpdb->prepare( $update, $new_value, $old_value );
+								self::do_sql_query( $sql_query );
+							}
 						}
 					}
 				}
@@ -253,7 +270,7 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 			$new = $val;
 			if ( is_string( $val ) ) {
 				$pos = strpos( $val, $to_string );
-				if ( $pos === false ) {
+				if ( false === $pos ) {
 					$new = str_replace( $from_string, $to_string, $val );
 				}
 			}
@@ -270,17 +287,12 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 		 * @return string the new string
 		 */
 		public static function replace_recursive( $val, $from_string, $to_string ) {
-			$unset = array();
 			if ( is_array( $val ) ) {
 				foreach ( $val as $k => $v ) {
 					$val[ $k ] = self::try_replace( $val, $k, $from_string, $to_string );
 				}
 			} else {
 				$val = self::replace( $val, $from_string, $to_string );
-			}
-
-			foreach ( $unset as $k ) {
-				unset( $val[ $k ] );
 			}
 
 			return $val;
@@ -299,10 +311,16 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 		public static function try_replace( $row, $field, $from_string, $to_string ) {
 			if ( is_serialized( $row[ $field ] ) ) {
 				$double_serialize = false;
-				$row[ $field ]    = @unserialize( $row[ $field ] );
+				// $row[$field] is data already stored in the DB of the site being duplicated (the same
+				// data WP core itself unserializes on every page load via maybe_unserialize()), not
+				// externally supplied input. Real objects are expected (see is_object() branch below),
+				// so allowed_classes can't be disabled without changing behaviour.
+				// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
+				$row[ $field ] = @unserialize( $row[ $field ] );
 
 				// FOR SERIALISED OPTIONS, like in wp_carousel plugin
 				if ( is_serialized( $row[ $field ] ) ) {
+					// phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.PHP.DiscouragedPHPFunctions.serialize_unserialize
 					$row[ $field ]    = @unserialize( $row[ $field ] );
 					$double_serialize = true;
 				}
@@ -319,10 +337,12 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 						$row[ $field ] = self::replace( $row[ $field ], $from_string, $to_string );
 				}
 
+				// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- re-serializing data unserialized above; format must match what was stored.
 				$row[ $field ] = serialize( $row[ $field ] );
 
 				// Pour des options comme wp_carousel...
 				if ( $double_serialize ) {
+					// phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- see above.
 					$row[ $field ] = serialize( $row[ $field ] );
 				}
 			} else {
@@ -344,6 +364,10 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 			global $wpdb;
 			$wpdb->hide_errors();
 
+			// Generic SQL runner used throughout the duplication process for schema-level
+			// DDL/copy queries built from trusted, schema-derived identifiers (see callers);
+			// queries with user-supplied values are already prepared by the caller.
+			// phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 			switch ( $type ) {
 				case 'col':
 					$results = $wpdb->get_col( $sql_query );
@@ -361,13 +385,15 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 					$results = $wpdb->query( $sql_query );
 					break;
 			}
+			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $log ) {
 				MUCD_Duplicate::write_log( 'SQL :' . $sql_query );
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- intentional debug log, gated behind $log.
 				MUCD_Duplicate::write_log( 'Result :' . var_export( $results, true ) );
 			}
 
-			if ( $wpdb->last_error != '' ) {
+			if ( '' !== $wpdb->last_error ) {
 				self::sql_error( $sql_query, $wpdb->last_error );
 			}
 
@@ -387,13 +413,13 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 			$error_2 = 'WPDB ERROR : ' . $sql_error;
 			MUCD_Duplicate::write_log( $error_2 );
 			MUCD_Duplicate::write_log( 'Duplication interrupted on SQL ERROR' );
-			echo '<br />Duplication failed :<br /><br />' . $error_1 . '<br /><br />' . $error_2 . '<br /><br />';
-			if ( $log_url = MUCD_Duplicate::log_url() ) {
-				echo '<a href="' . $log_url . '">' . MUCD_NETWORK_PAGE_DUPLICATE_VIEW_LOG . '</a>';
+			echo '<br />Duplication failed :<br /><br />' . esc_html( $error_1 ) . '<br /><br />' . esc_html( $error_2 ) . '<br /><br />';
+			$log_url = MUCD_Duplicate::log_url();
+			if ( $log_url ) {
+				echo '<a href="' . esc_url( $log_url ) . '">' . esc_html( MUCD_NETWORK_PAGE_DUPLICATE_VIEW_LOG ) . '</a>';
 			}
 			MUCD_Functions::remove_blog( self::$to_site_id );
 			wp_die();
 		}
-
 	}
 }
