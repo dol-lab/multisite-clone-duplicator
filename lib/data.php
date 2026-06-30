@@ -388,9 +388,9 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 			// phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared
 
 			if ( $log ) {
-				MUCD_Duplicate::write_log( 'SQL :' . $sql_query );
+				MUCD_Duplicate::write_log( 'SQL :' . $sql_query, 'debug' );
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_var_export -- intentional debug log, gated behind $log.
-				MUCD_Duplicate::write_log( 'Result :' . var_export( $results, true ) );
+				MUCD_Duplicate::write_log( 'Result :' . var_export( $results, true ), 'debug' );
 			}
 
 			if ( '' !== $wpdb->last_error ) {
@@ -409,10 +409,10 @@ if ( ! class_exists( 'MUCD_Data' ) ) {
 		 */
 		public static function sql_error( $sql_query, $sql_error ) {
 			$error_1 = 'ERROR SQL ON : ' . $sql_query;
-			MUCD_Duplicate::write_log( $error_1 );
+			MUCD_Duplicate::write_log( $error_1, 'critical' );
 			$error_2 = 'WPDB ERROR : ' . $sql_error;
-			MUCD_Duplicate::write_log( $error_2 );
-			MUCD_Duplicate::write_log( 'Duplication interrupted on SQL ERROR' );
+			MUCD_Duplicate::write_log( $error_2, 'critical' );
+			MUCD_Duplicate::write_log( 'Duplication interrupted on SQL ERROR', 'critical' );
 			echo '<br />Duplication failed :<br /><br />' . esc_html( $error_1 ) . '<br /><br />' . esc_html( $error_2 ) . '<br /><br />';
 			$log_url = MUCD_Duplicate::log_url();
 			if ( $log_url ) {

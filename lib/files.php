@@ -130,10 +130,10 @@ if ( ! class_exists( 'MUCD_Files' ) ) {
 		 */
 		public static function mkdir_error( $dir_path, $to_site_id ) {
 			$error_1 = 'ERROR DURING FILE COPY : CANNOT CREATE ' . $dir_path;
-			MUCD_Duplicate::write_log( $error_1 );
+			MUCD_Duplicate::write_log( $error_1, 'critical' );
 			$error_2 = sprintf( MUCD_NETWORK_PAGE_DUPLICATE_COPY_FILE_ERROR, MUCD_Functions::get_primary_upload_dir() );
-			MUCD_Duplicate::write_log( $error_2 );
-			MUCD_Duplicate::write_log( 'Duplication interrupted on FILE COPY ERROR' );
+			MUCD_Duplicate::write_log( $error_2, 'critical' );
+			MUCD_Duplicate::write_log( 'Duplication interrupted on FILE COPY ERROR', 'critical' );
 			echo '<br />Duplication failed :<br /><br />' . esc_html( $error_1 ) . '<br /><br />' . esc_html( $error_2 ) . '<br /><br />';
 			$log_url = MUCD_Duplicate::log_url();
 			if ( $log_url ) {

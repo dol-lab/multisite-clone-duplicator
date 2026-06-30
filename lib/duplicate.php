@@ -61,6 +61,7 @@ if ( ! class_exists( 'MUCD_Duplicate' ) ) {
 
 			if ( is_wp_error( $user_id ) ) {
 				$form_message['error'] = $user_id->get_error_message();
+				self::write_log( 'Admin user creation failed : ' . $user_id->get_error_message(), 'error' );
 				return $form_message;
 			}
 
@@ -71,6 +72,7 @@ if ( ! class_exists( 'MUCD_Duplicate' ) ) {
 
 			if ( is_wp_error( $to_site_id ) ) {
 				$form_message['error'] = $to_site_id->get_error_message();
+				self::write_log( 'Site creation failed : ' . $to_site_id->get_error_message(), 'error' );
 				return $form_message;
 			}
 
@@ -236,10 +238,24 @@ if ( ! class_exists( 'MUCD_Duplicate' ) ) {
 
 		/**
 		 * Writes a message in log file
+		 *
+		 * Fires unconditionally (before the file-logging gate below) so that
+		 * listeners still receive every message even when the admin did not
+		 * enable file logging for this run.
+		 *
 		 * @since 0.2.0
-		 * @param  string $msg the message
+		 * @param  string $msg   the message
+		 * @param  string $level PSR-3 log level (emergency, alert, critical, error, warning, notice, info, debug). Default 'info'.
 		 */
-		public static function write_log( $msg ) {
+		public static function write_log( $msg, $level = 'info' ) {
+			/**
+			 * Fires for every MUCD log message, regardless of whether file logging is enabled.
+			 *
+			 * @param string $msg   the message
+			 * @param string $level PSR-3 log level
+			 */
+			do_action( 'mucd_log', $msg, $level );
+
 			if ( self::log() !== false ) {
 				self::$log->write_log( $msg );
 			}
